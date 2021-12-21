@@ -1,2 +1,0 @@
-# ChunyuBlog
-Chunyu's Blog
