@@ -6,7 +6,8 @@
 -->
 <html>
 	<head>
-		<title>Single - Future Imperfect by HTML5 UP</title>
+		<title>Unity Android Build Support 离线安装 - Chunyu's Blog
+		</title>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 		<link rel="stylesheet" href="assets/css/main.css" />
@@ -17,31 +18,31 @@
 			<div id="wrapper">
 
 				<!-- Header -->
-					<header id="header">
-						<h1><a href="index.html">Future Imperfect</a></h1>
-						<nav class="links">
-							<ul>
-								<li><a href="#">Lorem</a></li>
-								<li><a href="#">Ipsum</a></li>
-								<li><a href="#">Feugiat</a></li>
-								<li><a href="#">Tempus</a></li>
-								<li><a href="#">Adipiscing</a></li>
-							</ul>
-						</nav>
-						<nav class="main">
-							<ul>
-								<li class="search">
-									<a class="fa-search" href="#search">Search</a>
-									<form id="search" method="get" action="#">
-										<input type="text" name="query" placeholder="Search" />
-									</form>
-								</li>
-								<li class="menu">
-									<a class="fa-bars" href="#menu">Menu</a>
-								</li>
-							</ul>
-						</nav>
-					</header>
+				<header id="header">
+					<h1><a href="index.html">Chunyu's Blog</a></h1>
+					<nav class="links">
+						<ul>
+							<li><a href="#">Game</a></li>
+							<li><a href="#">XR</a></li>
+							<li><a href="#">Bioinformatics</a></li>
+							<li><a href="#">Startup</a></li>
+							<li><a href="#">Other</a></li>
+						</ul>
+					</nav>
+					<nav class="main">
+						<ul>
+							<li class="search">
+								<a class="fa-search" href="#search">Search</a>
+								<form id="search" method="get" action="#">
+									<input type="text" name="query" placeholder="Search" />
+								</form>
+							</li>
+							<li class="menu">
+								<a class="fa-bars" href="#menu">Menu</a>
+							</li>
+						</ul>
+					</nav>
+				</header>
 
 				<!-- Menu -->
 					<section id="menu">
@@ -58,26 +59,26 @@
 								<ul class="links">
 									<li>
 										<a href="#">
-											<h3>Lorem ipsum</h3>
-											<p>Feugiat tempus veroeros dolor</p>
+											<h3>Game</h3>
+											<p>游戏设计与原型开发</p>
 										</a>
 									</li>
 									<li>
 										<a href="#">
-											<h3>Dolor sit amet</h3>
-											<p>Sed vitae justo condimentum</p>
+											<h3>XR</h3>
+											<p>XR开发与社区运营</p>
 										</a>
 									</li>
 									<li>
 										<a href="#">
-											<h3>Feugiat veroeros</h3>
-											<p>Phasellus sed ultricies mi congue</p>
+											<h3>Bioinformatics</h3>
+											<p>荒废的生物信息学</p>
 										</a>
 									</li>
 									<li>
 										<a href="#">
-											<h3>Etiam sed consequat</h3>
-											<p>Porta lectus amet ultricies</p>
+											<h3>Startup</h3>
+											<p>创业的辛酸苦辣</p>
 										</a>
 									</li>
 								</ul>
@@ -99,22 +100,69 @@
 							<article class="post">
 								<header>
 									<div class="title">
-										<h2><a href="#">Magna sed adipiscing</a></h2>
-										<p>Lorem ipsum dolor amet nullam consequat etiam feugiat</p>
+										<h2><a href="#">Unity 及 Android Build 离线安装</a></h2>
+										<p>工作室用的Unity Hub、Editor及Android Build离线安装方案</p>
 									</div>
 									<div class="meta">
-										<time class="published" datetime="2015-11-01">November 1, 2015</time>
-										<a href="#" class="author"><span class="name">Jane Doe</span><img src="images/avatar.jpg" alt="" /></a>
+										<time class="published" datetime="2015-11-01">December 21, 2021</time>
+										<a href="#" class="author"><span class="name">Chunyu CHEN</span><img src="images/avatar.jpg" alt="" /></a>
 									</div>
 								</header>
 								<span class="image featured"><img src="images/pic01.jpg" alt="" /></span>
-								<p>Mauris neque quam, fermentum ut nisl vitae, convallis maximus nisl. Sed mattis nunc id lorem euismod placerat. Vivamus porttitor magna enim, ac accumsan tortor cursus at. Phasellus sed ultricies mi non congue ullam corper. Praesent tincidunt sed tellus ut rutrum. Sed vitae justo condimentum, porta lectus vitae, ultricies congue gravida diam non fringilla.</p>
-								<p>Nunc quis dui scelerisque, scelerisque urna ut, dapibus orci. Sed vitae condimentum lectus, ut imperdiet quam. Maecenas in justo ut nulla aliquam sodales vel at ligula. Sed blandit diam odio, sed fringilla lectus molestie sit amet. Praesent eu tortor viverra lorem mattis pulvinar feugiat in turpis. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Fusce ullamcorper tellus sit amet mattis dignissim. Phasellus ut metus ligula. Curabitur nec leo turpis. Ut gravida purus quis erat pretium, sed pellentesque massa elementum. Fusce vestibulum porta augue, at mattis justo. Integer sed sapien fringilla, dapibus risus id, faucibus ante. Pellentesque mattis nunc sit amet tortor pellentesque, non placerat neque viverra. </p>
+								<p>注：离线安装仍需要登录Unity ID获得许可证。本文仅解决部分网络环境下Unity Hub下载不稳定造成的安装失败。本文描述基于Windows，MacOS部分仅供参考。</p>
+								<h1>资源下载</h1>
+								<p>此处提供相关资源以供测试，不保证稳定和安全性，更建议在官方来源下载。内含：
+									<ul>
+										<li>Unity Hub 3.0.6beta 离线安装包（Win&Mac）</li>
+										<li>Unity Editor 2020.3.22f1c1 离线安装包（Win&Mac）</li>
+										<li>UnitySetup-Android-Support-for-Editor-2020.3.22f1c1 离线安装包（Win&Mac）</li>
+										<li>JDK 1.8 离线安装包（Win&Mac）</li>
+										<li>android-studio-2020.3.1.26-windows</li>
+										<li>自制Unity 2020.3 OpenJDK SDK NDK支持包</li>
+									</ul>
+									<a href="https://pan.baidu.com/s/1GfhpDfpIPhpgLMyL6VQJcg">百度网盘链接</a>，提取码：0000</p>
+								<h1>Unity Hub 安装</h1>
+								<p>因为Unity及Unity中国采用的是不同的服务器和域名，建议根据网络环境选择合适的下载链接及注册登录账号。</p>
+									<ul>
+										<li><a href="https://unity.com/cn/download">Unity Download</a></li>
+										<li><a href="https://unity.cn/releases">Unity最新版本下载-Unity稳定版本 | Unity中国官网</a></li>
+									</ul>
+								<p>下载并安装Unity Hub。
+								注册Unity账号，申请个人许可证时，选择“我不以专业身份使用Unity”。
+								如果网络环境良好，可以直接尝试安装Unity Editor并勾选Android Build Support、Android SDK & NDK Tools、OpenJDK，安装Unity Editor。</p>
+								<p>注意，即使看起来Android Build安装成功了，也不一定真的能够使用，请务必build一个scene测试。如果该方法安装Unity Editor或Android Support失败，可以尝试下列离线安装方法。</p>
+								<h1>Unity Editor 及对应Android Build Support安装</h1>
+								<p>根据网络环境，进入下列链接中选择自己需要的版本和系统“下载（Mac）”或“下载（Win）”，下载Editor的离线安装程序。在本地安装即可。</p>
+								<ul>
+									<li><a href="https://unity3d.com/get-unity/download/archive">Unity download archive</a></li>
+									<li><a href="https://unity.cn/releases">Unity最新版本下载-Unity稳定版本 | Unity中国官网</a></li>
+								</ul>
+								<p>安装完成后，此时的Unity已经可以正常打开并使用，也可以添加到Unity Hub中。
+								但此时Unity Hub中无法给离线安装的Unity Editor安装模块。
+								并且进入Unity后，在“Edit - Preference - External Tool”中也没有Android相关选项。</p>
+								<p>安装UnitySetup-Android-Support-for-Editor可以解决这一问题。
+									该程序可以在对应版本的Unity Editor中Release Notes中找到下载链接。
+									注意，请选择对应Editor版本的Android Support，并且在安装时，要选择和对应版本的Unity Editor同一路径。</p>
+								<p>有Android Support后，可以在“Edit - Preference - External Tool”中找到Android相关选项。并且重新用Unity Hub加载Editor时，对应版本的Editor会出现Android图标</p>
+								<h1>OpenJDK, SDK, NDK (for Windows)</h1>
+								<p>如果您周边的其他Windows设备上已经有相近版本的Unity Editor安装了Android Build所需的OpenJDK、SDK、NDK，
+									可以直接去已安装Unity Editor的安装路径找到三个文件夹复制到需要安装的Unity Editor路径下。
+									这种对文件目录直接操作的方式，会被Unity自动识别，打开External Tool会显示均为(recommended)。</p>
+								<p>使用Unity Hub安装的路径通常为“C:\Program Files\Unity\Hub\Editor\版本号\Editor\Data\PlaybackEngines\AndroidPlayer”，使用离线安装包安装的路径通常为“C:\Program Files\Unity 版本号\Editor\Data\PlaybackEngines\AndroidPlayer”</p>
+								<p>本文百度网盘资源中提供了Unity 2020.3.25f1的OpenJDK, SDK, NDK，亲测在2020.3.22f1c1上亦可使用。</p>
+								<p>您也可以自行安装JDK 1.8和Android Studio以获取JDK和NDK，需要在External Tool手动输入路径。安装JDK后，路径通常位于“C:\Program Files\Java\jdk1.8.0_181”。安装Android Studio后，SDK路径通常位于"C:\Users\用户名\AppData\Local\Android\Sdk"。</p>
+								
+								<ul>
+									<li>JDK 1.8即JDK8，<a href="https://www.oracle.com/java/technologies/javase/javase8-archive-downloads.html">Java Archive Downloads - Java SE 8</a>. </li>
+									<li>Android Studio，<a href="https://developer.android.com/studio">Download Android Studio and SDK tools  |  Android Developers</a>. </li>
+								</ul>
+								
+
 								<footer>
 									<ul class="stats">
 										<li><a href="#">General</a></li>
-										<li><a href="#" class="icon solid fa-heart">28</a></li>
-										<li><a href="#" class="icon solid fa-comment">128</a></li>
+										<li><a href="#" class="icon solid fa-heart">114</a></li>
+										<li><a href="#" class="icon solid fa-comment">514</a></li>
 									</ul>
 								</footer>
 							</article>
