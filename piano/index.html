@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>即兴钢琴课</title>
+<meta name="description" content="30 分钟钢琴即兴入门：五线谱 + 简谱 + 琴键位置，跟着伴奏循环一步步练。">
+<meta name="theme-color" content="#15161a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2315161a'/%3E%3Crect x='5' y='7' width='6.4' height='18' rx='1.5' fill='%23fbfaf7'/%3E%3Crect x='12.8' y='7' width='6.4' height='18' rx='1.5' fill='%23fbfaf7'/%3E%3Crect x='20.6' y='7' width='6.4' height='18' rx='1.5' fill='%23fbfaf7'/%3E%3Crect x='9.4' y='7' width='4.6' height='10.5' rx='1' fill='%2315161a'/%3E%3Crect x='18' y='7' width='4.6' height='10.5' rx='1' fill='%2315161a'/%3E%3Ccircle cx='8.2' cy='21' r='2' fill='%23e8641c'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="#start" aria-label="即兴钢琴课，回到开始">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><b></b><b></b></span>
+      <span class="brand-name">即兴钢琴课</span>
+      <span class="brand-sub">30 分钟入门</span>
+    </a>
+    <div class="tools">
+      <label class="switch" for="opt-jianpu">
+        <input type="checkbox" id="opt-jianpu" role="switch" checked>
+        <span class="switch-track" aria-hidden="true"></span>
+        <span>简谱</span>
+      </label>
+      <fieldset class="seg compact" aria-label="琴键上标注">
+        <legend class="sr-only">琴键上标注</legend>
+        <span class="seg-title">琴键标注</span>
+        <label><input type="radio" name="opt-labels" id="lab-jianpu" value="jianpu" checked><span>简谱</span></label>
+        <label><input type="radio" name="opt-labels" id="lab-letter" value="letter"><span>音名</span></label>
+        <label><input type="radio" name="opt-labels" id="lab-none" value="none"><span>不标</span></label>
+      </fieldset>
+      <label class="vol" for="opt-volume"><span>音量</span><input type="range" id="opt-volume" min="0" max="100" value="80"></label>
+      <div class="midi">
+        <button type="button" class="btn ghost small" id="btn-midi"><i class="midi-dot" aria-hidden="true"></i><span>连接电钢琴</span></button>
+        <p class="midi-status" id="midi-status" role="status" hidden></p>
+        <label class="check small" id="midi-sound-wrap" hidden><input type="checkbox" id="opt-midi-sound"><span>电钢琴的音也从电脑放出来</span></label>
+      </div>
+    </div>
+  </header>
+
+  <div class="middle">
+    <aside class="route" aria-label="课程路线">
+      <p class="route-title">路线</p>
+      <nav id="route-list"></nav>
+      <div class="timer" aria-label="本机累计练习时间">
+        <div class="timer-head"><span>已经练了</span><b id="timer-text">00:00</b><span class="timer-goal">/ 30:00</span></div>
+        <div class="timer-track"><i id="timer-bar"></i></div>
+      </div>
+      <details class="cheat">
+        <summary>乐理小抄</summary>
+        <table>
+          <caption class="sr-only">简谱与音名对照</caption>
+          <tr><th scope="row">简谱</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td></tr>
+          <tr><th scope="row">音名</th><td>C</td><td>D</td><td>E</td><td>F</td><td>G</td><td>A</td><td>B</td></tr>
+          <tr><th scope="row">唱名</th><td>do</td><td>re</td><td>mi</td><td>fa</td><td>sol</td><td>la</td><td>si</td></tr>
+        </table>
+        <ul>
+          <li><b>五声音阶</b> 1 2 3 5 6</li>
+          <li><b>1 级 C</b> 1 3 5 · <b>6m 级 Am</b> 6 1 3</li>
+          <li><b>4 级 F</b> 4 6 1 · <b>5 级 G</b> 5 7 2</li>
+          <li><b>2m 级 Dm</b> 2 4 6 · <b>3m 级 Em</b> 3 5 7</li>
+          <li>数字上面加点：高八度；下面加点：低八度</li>
+          <li>下划线：半拍；横线 “–”：再延长一拍</li>
+        </ul>
+      </details>
+    </aside>
+    <div class="main-scroll" id="main-scroll">
+      <main class="main" id="main" tabindex="-1"></main>
+      <footer class="credits">
+        <p>钢琴采样：Salamander Grand Piano（Alexander Holm，CC BY 3.0）· 五线谱：VexFlow（MIT）· 字体：Bricolage Grotesque（OFL）。练习进度只保存在这台设备的浏览器里。</p>
+      </footer>
+    </div>
+  </div>
+
+  <footer class="dock" aria-label="钢琴键盘">
+    <div class="dock-bar">
+      <div class="now idle" id="now">
+        <span class="now-label">现在</span>
+        <span class="now-chord" id="now-chord">—</span>
+        <span class="now-deg" id="now-deg"></span>
+        <span class="now-tones" id="now-tones"></span>
+        <span class="now-next" id="now-next"></span>
+        <span class="now-beats" id="now-beats" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span class="now-count" id="now-count" aria-live="assertive"></span>
+      </div>
+      <div class="trail empty" aria-live="off">
+        <span class="trail-label">你弹的</span>
+        <span class="trail-notes" id="trail-notes"></span>
+        <span class="trail-empty">用电钢琴、电脑键盘或鼠标弹几个音试试</span>
+      </div>
+      <div class="kbd-tools">
+        <label class="check small" for="opt-hints"><input type="checkbox" id="opt-hints"><span>显示电脑键位</span></label>
+        <span class="oct">
+          <button type="button" class="icon-btn" id="oct-down" aria-label="电脑键盘低一个八度">Z −</button>
+          <span id="kbd-octave">A = C4</span>
+          <button type="button" class="icon-btn" id="oct-up" aria-label="电脑键盘高一个八度">X +</button>
+        </span>
+      </div>
+      <p class="sound-status" id="sound-status" hidden></p>
+    </div>
+    <div class="kb-frame">
+      <div id="keyboard"></div>
+    </div>
+  </footer>
+</div>
+<script src="vendor/vexflow-bravura.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
