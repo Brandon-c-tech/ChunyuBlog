@@ -170,6 +170,7 @@ export function buildPiece(spec) {
       chords: chords ? chords[i] : [],
       rh: rh ? rh[i].events : restBar(),
       lh: lh ? lh[i] : restBar(),
+      dyn: spec.dyn ? spec.dyn[i] : null,
     };
     bar.rh.forEach((e, k) => { e.id = `${spec.id}-${i}-r${k}`; e.hand = 'R'; });
     bar.lh.forEach((e, k) => { e.id = `${spec.id}-${i}-l${k}`; e.hand = 'L'; });
@@ -206,6 +207,70 @@ export const DRUM_STYLES = {
   },
 };
 
+// 力度：右手默认 0.74，落点音稍重；小节写了 dyn（强弱）时按它来
+function velocity(bar, hand, n) {
+  if (hand === 'rh') return bar.dyn != null ? bar.dyn : n.mark ? 0.82 : 0.74;
+  return bar.dyn != null ? Math.min(0.6, bar.dyn * 0.62) : 0.5;
+}
+
+// 把几段乐曲接成一段（比如“原版 + 变奏”），每段第一小节加上标签
+export function mergePieces(id, pieces, labels = []) {
+  const bars = [];
+  pieces.forEach((p, pi) => {
+    p.bars.forEach((b, bi) => {
+      const index = bars.length;
+      let label = b.label;
+      if (bi === 0 && labels[pi]) label = labels[pi] + (b.label ? ' · ' + b.label : '');
+      bars.push({
+        ...b,
+        index,
+        label,
+        part: pi,
+        rh: b.rh.map((e, k) => ({ ...e, id: `${id}-${index}-r${k}` })),
+        lh: b.lh.map((e, k) => ({ ...e, id: `${id}-${index}-l${k}` })),
+        chords: b.chords.map((c) => ({ ...c })),
+      });
+    });
+  });
+  return {
+    id,
+    bars,
+    bpm: pieces[0].bpm,
+    drums: pieces[0].drums,
+    length: bars.length * BEATS,
+    hasRH: true,
+    parts: pieces.map((p) => p.bars.length),
+  };
+}
+
+const sameNotes = (a, b) => a.notes.length === b.notes.length && a.notes.every((n, i) => n.midi === b.notes[i].midi);
+
+// 标出变奏里和原版不一样的音、不一样的和弦（原版在前 half 小节，变奏在后 half 小节）
+export function markChanges(piece, half) {
+  for (let i = 0; i < half; i++) {
+    const a = piece.bars[i];
+    const b = piece.bars[i + half];
+    if (!b) break;
+    for (const e of b.rh) {
+      if (e.rest) continue;
+      const hit = a.rh.find((o) => !o.rest && Math.abs(o.start - e.start) < 1e-6 && Math.abs(o.dur - e.dur) < 1e-6 && sameNotes(o, e));
+      if (!hit) e.changed = true;
+    }
+    for (const c of b.chords) {
+      const hit = a.chords.find((o) => Math.abs(o.start - c.start) < 1e-6 && o.sym === c.sym);
+      if (!hit) c.changed = true;
+    }
+  }
+  return piece;
+}
+
+// 取出某一段拍子里的事件，并挪到从 0 开始
+export function sliceEvents(events, from, to) {
+  return events
+    .filter((e) => e.beat >= from - 1e-6 && e.beat < to - 1e-6)
+    .map((e) => ({ ...e, beat: e.beat - from }));
+}
+
 // 乐曲 → 播放事件（拍为单位）
 export function pieceEvents(piece, { drums, metronome } = {}) {
   const ev = [];
@@ -226,7 +291,7 @@ export function pieceEvents(piece, { drums, metronome } = {}) {
           hand: n.hand,
           midis: n.notes.map((x) => x.midi),
           id: n.id,
-          vel: hand === 'rh' ? (n.mark ? 0.82 : 0.74) : 0.5,
+          vel: velocity(bar, hand, n),
           order: 2,
         });
       }

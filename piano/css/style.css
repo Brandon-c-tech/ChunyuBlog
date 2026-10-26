@@ -31,6 +31,9 @@
   --safe-soft: #d3f0de;
   --you: #a33ccc;
   --you-soft: #f0dcf8;
+  --changed: #d1336c;
+  --changed-soft: #fbe1ea;
+  --warn: #b45309;
   --tag-bg: #ffe98f;
   --tag-ink: #5a4500;
   --dock: #15161a;
@@ -79,6 +82,9 @@
     --safe-soft: #12351f;
     --you: #d683f5;
     --you-soft: #3a1f47;
+    --changed: #ff6f9c;
+    --changed-soft: #4a1b2c;
+    --warn: #f5b04a;
     --tag-bg: #5b4a0b;
     --tag-ink: #ffe58a;
     --dock: #0a0b0d;
@@ -114,6 +120,9 @@
   --safe-soft: #12351f;
   --you: #d683f5;
   --you-soft: #3a1f47;
+  --changed: #ff6f9c;
+  --changed-soft: #4a1b2c;
+  --warn: #f5b04a;
   --tag-bg: #5b4a0b;
   --tag-ink: #ffe58a;
   --dock: #0a0b0d;
@@ -468,6 +477,8 @@ fieldset.seg { margin: 0; min-width: 0; align-items: center; }
 .midi { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; position: relative; }
 .midi-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
 #btn-midi.connected .midi-dot { background: var(--safe); box-shadow: 0 0 0 3px var(--safe-soft); }
+.midi-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+#btn-mic.listening .midi-dot { background: #d62f2f; box-shadow: 0 0 0 3px rgba(214, 47, 47, 0.2); animation: pulse 1.2s infinite; }
 .midi-status { margin: 0; font-size: 12px; color: var(--ink-2); max-width: 280px; text-align: right; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -545,6 +556,23 @@ fieldset.seg { margin: 0; min-width: 0; align-items: center; }
 .score svg .jp.on-R .jp-line { stroke: var(--rh); }
 .score svg .jp.on-L .jp-line { stroke: var(--lh); }
 .score svg .jp.on-R .jp-num { font-weight: 800; }
+
+/* 变奏里改动过的音（粉色）、跟弹时的下一个音（橙色虚线圈）、工作台里选中的音（紫色） */
+.score svg .vf-stavenote.is-changed { fill: var(--changed); stroke: var(--changed); }
+.score svg .jp.is-changed .jp-num, .score svg .jp.is-changed .jp-dot, .score svg .jp.is-changed .jp-acc { fill: var(--changed); }
+.score svg .jp.is-changed .jp-line { stroke: var(--changed); }
+.score svg .chord-sym.is-changed .chord-name { fill: var(--changed); }
+.score svg .chord-sym.is-changed .chord-deg-bg { fill: var(--changed-soft); }
+.jp-halo { fill: transparent; stroke: none; }
+.score svg .jp.is-next .jp-halo { fill: var(--rh-soft); stroke: var(--rh); stroke-width: 1.6; stroke-dasharray: 3 2.5; }
+.score svg .vf-stavenote.is-next { fill: var(--rh); stroke: var(--rh); }
+.score svg .jp.is-selected .jp-halo { fill: var(--you-soft); stroke: var(--you); stroke-width: 1.8; }
+.score svg .vf-stavenote.is-selected { fill: var(--you); stroke: var(--you); }
+.workbench .score svg .jp:not(.jp-lh):not(.jp-rest) { cursor: pointer; }
+/* 正在发声的音永远用左右手的颜色，盖过粉色/选中 */
+.score svg .vf-stavenote.on-R.is-changed, .score svg .vf-stavenote.on-R.is-selected { fill: var(--rh); stroke: var(--rh); }
+.score svg .jp.on-R.is-changed .jp-num, .score svg .jp.on-R.is-changed .jp-dot, .score svg .jp.on-R.is-changed .jp-acc { fill: var(--rh); }
+.score svg .jp.on-R.is-changed .jp-line { stroke: var(--rh); }
 
 .chord-name { font: 700 16px var(--font-display); fill: currentColor; }
 .chord-deg { font: 650 11.5px var(--font-display); fill: var(--paper-ink-2); }
@@ -705,6 +733,8 @@ fieldset.seg { margin: 0; min-width: 0; align-items: center; }
 .sw.safe { background: var(--safe); border-radius: 50%; width: 12px; height: 12px; margin: 1px; }
 .sw.you { background: var(--you); }
 .sw.sticker { background: var(--sticker); }
+.sw.changed { background: var(--changed); }
+.sw.next { background: transparent; border: 2px dashed var(--rh); border-radius: 50%; }
 kbd {
   display: inline-block;
   min-width: 22px;
@@ -901,6 +931,11 @@ kbd {
 .key.on-rh .lbl, .key.on-lh .lbl, .key.on-you .lbl { color: #fff; }
 .key.on-rh, .key.on-lh, .key.on-you, .key.on-flash { transform: translateY(1px); }
 .key.on-rh .mark, .key.on-lh .mark, .key.on-you .mark { box-shadow: 0 0 0 2px #fff; }
+.key.is-next { outline: 3px dashed var(--rh); outline-offset: -5px; z-index: 3; }
+.key.black.is-next { outline-color: #ffb07a; }
+.key.is-next .lbl { color: var(--rh); font-weight: 800; }
+.key.is-wrong { animation: wrong 0.45s ease; }
+@keyframes wrong { 0%, 100% { transform: none; } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
 
 /* ---------- 窄屏 ---------- */
 @media (max-width: 1100px) {
@@ -954,3 +989,111 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- 对比、跟弹、工作台、配和弦、毕业作品 ---------- */
+.legend-line { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.legend-line .sw { width: 12px; height: 12px; }
+.compare .player .btn.play.ghost .ico { border-left-color: currentColor; }
+
+.follow-btn.is-on { border-color: var(--rh); color: var(--rh); }
+.follow-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--rh-soft);
+  color: var(--ink);
+}
+.follow-status { margin: 0; font-size: 16px; }
+.follow-status .jpi { font-size: 20px; margin: 0 2px; color: var(--rh); }
+.follow-status .ok { color: var(--safe); margin-right: 6px; }
+.follow-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.follow-actions .muted { color: var(--ink-2); }
+
+.wb-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.wb-info, .wb-feedback { margin: 0; }
+.wb-info .jpi { font-size: 18px; color: var(--you); }
+.wb-feedback:empty { display: none; }
+.wb-feedback .ok, .wb-feedback .warn {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: #fff;
+}
+.wb-feedback .ok { background: var(--safe); }
+.wb-feedback .warn { background: var(--warn); }
+.wb-feedback .jpi { font-size: 17px; }
+.wb-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.wb-actions .btn:disabled { opacity: 0.45; cursor: default; filter: none; }
+
+.cg-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 700px) { .cg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.cg-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  color: var(--paper-ink);
+}
+.cg-slot[data-fit='good'] { border-color: var(--safe); }
+.cg-slot[data-fit='ok'] { border-color: var(--warn); }
+.cg-slot[data-fit='bad'] { border-color: var(--changed); background: var(--changed-soft); }
+.cg-pos { font-size: 12px; color: var(--ink-3); }
+.cg-notes { display: flex; gap: 8px; font-size: 20px; min-height: 30px; align-items: center; }
+.cg-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.cg-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3px 0;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  line-height: 1.15;
+}
+.cg-opt b { font: 700 13px var(--font-display); }
+.cg-opt small { font-size: 10px; color: var(--ink-3); }
+.cg-opt:hover { border-color: var(--ink-3); }
+.cg-opt[aria-checked='true'] { background: var(--btn-bg); color: var(--btn-ink); border-color: var(--btn-bg); }
+.cg-opt[aria-checked='true'] small { color: inherit; opacity: 0.75; }
+.cg-fit { font-size: 12px; font-weight: 700; }
+.cg-slot[data-fit='good'] .cg-fit { color: var(--safe); }
+.cg-slot[data-fit='ok'] .cg-fit { color: var(--warn); }
+.cg-slot[data-fit='bad'] .cg-fit { color: var(--changed); }
+.cg-summary { margin: 0; }
+
+.finale {
+  padding: 20px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.move-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.move {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 14px;
+}
+.move:hover { border-color: var(--ink-3); }
+.move[aria-pressed='true'] { background: var(--safe); border-color: var(--safe); color: #fff; }
+.move[aria-pressed='true']::before { content: '✓ '; }
+.move-count { margin: 0; font-size: 13px; color: var(--ink-3); }
+.ok { color: var(--safe); }

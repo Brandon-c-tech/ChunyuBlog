@@ -102,8 +102,10 @@ export function renderScore(host, piece, opts = {}) {
   const density = Math.max(1, ...bars.map((b) => Math.max(b.rh.length, b.lh.length)));
   const minBarW = 84 + density * 15;
   let perLine = Math.max(1, Math.min(opts.maxPerLine || 4, Math.floor((width - 60) / minBarW)));
+  // 对比谱（原版 + 变奏）要上下对齐：每行的小节数必须能整除每段的长度
+  if (opts.divisor) while (perLine > 1 && opts.divisor % perLine !== 0) perLine--;
   const nLines = Math.ceil(nBars / perLine);
-  perLine = Math.ceil(nBars / nLines);
+  if (!opts.divisor) perLine = Math.ceil(nBars / nLines);
   const totalH = nLines * lineH;
   renderer.resize(width, totalH);
   const ctx = renderer.getContext();
@@ -119,7 +121,8 @@ export function renderScore(host, piece, opts = {}) {
   for (let li = 0; li < nLines; li++) {
     const oy = li * lineH;
     const lineBars = bars.slice(li * perLine, li * perLine + perLine);
-    const clefW = li === 0 ? 74 : 46;
+    // 对比谱每行留一样宽的谱号位置，上下两行的小节线才能对齐
+    const clefW = li === 0 || opts.divisor ? 74 : 46;
     const barW = (width - leftPad - rightPad - clefW) / perLine;
     let x = leftPad;
     lineBars.forEach((bar, k) => {
@@ -227,6 +230,7 @@ export function renderScore(host, piece, opts = {}) {
         if (!g) return;
         g.setAttribute('data-nid', o.ev.id);
         if (o.ev.mark) g.classList.add('is-target');
+        if (o.ev.changed) g.classList.add('is-changed');
         if (!view.notes.has(o.ev.id)) view.notes.set(o.ev.id, { els: [], ev: o.ev, hand });
         view.notes.get(o.ev.id).els.push(g);
       };
@@ -236,7 +240,7 @@ export function renderScore(host, piece, opts = {}) {
       // ----- 和弦记号 -----
       bar.chords.forEach((c, si) => {
         const cx = xAt(c.start) - 7;
-        const g = node('g', { class: 'chord-sym', 'data-bar': bar.index, 'data-seg': si }, svg);
+        const g = node('g', { class: 'chord-sym' + (c.changed ? ' is-changed' : ''), 'data-bar': bar.index, 'data-seg': si }, svg);
         const [base, sup] = splitChordName(c.sym);
         chordText(g, cx, oy + L.chord, base, sup, 'chord-name');
         const chord = c.chord;
@@ -287,6 +291,14 @@ export function renderScore(host, piece, opts = {}) {
     svg.querySelectorAll('.on-R, .on-L').forEach((g) => g.classList.remove('on-R', 'on-L'));
     view.chords.forEach((c) => c.g.classList.remove('is-current'));
   };
+  // 给某个音加/去掉一个样式（跟弹时的“下一个”、工作台里的“选中”）
+  view.mark = (id, cls, on = true) => {
+    const n = view.notes.get(id);
+    if (n) for (const g of n.els) g.classList.toggle(cls, on);
+  };
+  view.unmarkAll = (cls) => {
+    svg.querySelectorAll('.' + cls).forEach((g) => g.classList.remove(cls));
+  };
   view.setChord = (bar, seg) => {
     view.chords.forEach((c) => c.g.classList.toggle('is-current', c.bar === bar && c.seg === seg));
   };
@@ -319,6 +331,8 @@ function drawJianpuLine(svg, events, xAt, base, size, cap, view, hand) {
       continue;
     }
     const note = ev.notes[ev.notes.length - 1];
+    // 光圈：跟弹时的“下一个音”、工作台里“选中的音”会亮起来
+    node('circle', { cx: x, cy: base - cap / 2, r: size * 0.78, class: 'jp-halo' }, g);
     if (ev.mark) node('circle', { cx: x, cy: base - cap / 2, r: size * 0.66, class: 'jp-target' }, g);
     const t = node('text', { x, y: base, class: 'jp-num', 'font-size': size }, g);
     t.textContent = String(note.num);
@@ -345,6 +359,7 @@ function drawJianpuLine(svg, events, xAt, base, size, cap, view, hand) {
     }
     g.setAttribute('data-nid', ev.id);
     if (ev.mark) g.classList.add('is-target');
+    if (ev.changed) g.classList.add('is-changed');
     const n = view.notes.get(ev.id);
     if (n) n.els.push(g);
     else view.notes.set(ev.id, { els: [g], ev, hand });

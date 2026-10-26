@@ -2,7 +2,7 @@
 
 import { AudioEngine, Transport } from './audio.js';
 import { Keyboard } from './keyboard.js';
-import { Input } from './input.js';
+import { Input, MicListener } from './input.js';
 import { renderScore } from './score.js';
 import { parseChord, chordToneText, midiToJianpu, noteRole, PENTA_PCS, MAJOR_PCS } from './theory.js';
 import { LESSONS } from './lessons.js';
@@ -56,6 +56,10 @@ const keyboard = new Keyboard($('#keyboard'), {
 });
 
 const input = new Input({ onNoteOn: userOn, onNoteOff: userOff, onChange: refreshInputUI });
+const mic = new MicListener({ onNoteOn: (m) => userOn(m, 0.7, 'mic'), onNoteOff: (m) => userOff(m, 'mic') });
+// 网站自己在弹右手旋律时，麦克风会把它也听进去，这段时间先不算
+let siteRh = 0;
+let siteRhOff = 0;
 
 // ---------- 键盘上的标记 ----------
 function computeMarks() {
@@ -130,8 +134,11 @@ function startSession(opts) {
   engine.ensure();
   noteActivity();
   stopSession();
-  const timeline = (Array.isArray(opts.events) ? opts.events : []).filter((e) => e.type === 'chord');
-  const session = { ...opts, timeline };
+  followStop();
+  const list = Array.isArray(opts.events) ? opts.events : [];
+  const timeline = list.filter((e) => e.type === 'chord');
+  const rhNotes = list.filter((e) => e.type === 'note' && e.hand === 'R');
+  const session = { ...opts, timeline, rhNotes, nextId: null };
   state.session = session;
   if (opts.marks) setMarksMode(opts.marks);
   opts.onState && opts.onState(true);
@@ -153,11 +160,34 @@ function startSession(opts) {
       onTick: (beat) => {
         if (beat < 0) return;
         setBeat(Math.floor(beat) % 4);
+        lookAhead(session, beat);
         session.onTick && session.onTick(beat);
       },
       onStop: () => endSession(session),
     },
   );
+}
+
+// 你自己弹右手时（只放左手），提前一拍在琴键和谱上提示下一个音
+function lookAhead(session, beat) {
+  let id = null;
+  let next = null;
+  if (session.hands === 'L' && session.rhNotes.length) {
+    const len = session.length;
+    const pos = session.loop ? ((beat % len) + len) % len : beat;
+    next = session.rhNotes.find((e) => e.beat > pos + 0.03);
+    if (!next && session.loop) next = session.rhNotes[0];
+    const ahead = next ? (next.beat - pos + len) % len : Infinity;
+    if (next && ahead <= 1.25) id = next.id;
+  }
+  if (id === session.nextId) return;
+  session.nextId = id;
+  const view = state.views.get(session.key);
+  if (view) view.unmarkAll('is-next');
+  if (id) {
+    keyboard.setNext(next.midis);
+    if (view) view.mark(id, 'is-next', true);
+  } else keyboard.setNext(null);
 }
 
 function nextChordAfter(session, ev) {
@@ -176,6 +206,10 @@ function visual(session, ev, on) {
       const who = ev.hand === 'R' ? 'rh' : 'lh';
       for (const m of ev.midis) (on ? keyboard.press(m, who) : keyboard.release(m, who));
       if (view) view.set(ev.id, on, ev.hand);
+      if (ev.hand === 'R' && session.hands !== 'L') {
+        siteRh = Math.max(0, siteRh + (on ? 1 : -1));
+        if (!on) siteRhOff = performance.now();
+      }
       break;
     }
     case 'chord':
@@ -198,10 +232,16 @@ function visual(session, ev, on) {
 }
 
 function endSession(session) {
+  siteRh = 0;
+  siteRhOff = performance.now();
   keyboard.releaseAll('rh');
   keyboard.releaseAll('lh');
+  keyboard.setNext(null);
   const view = state.views.get(session.key);
-  if (view) view.clear();
+  if (view) {
+    view.clear();
+    view.unmarkAll('is-next');
+  }
   setBeat(-1);
   showCount(0);
   if (state.session === session) {
@@ -231,11 +271,15 @@ function drawScore(key) {
   if (!s || !s.host.isConnected) return;
   const view = renderScore(s.host, s.piece, {
     jianpu: settings.jianpu,
-    onNoteClick: (ev) => previewNotes(ev.notes.map((n) => n.midi), Math.min(1.2, ev.dur * 0.55), ev.hand),
+    onNoteClick: s.extra.onNoteClick || ((ev) => previewNotes(ev.notes.map((n) => n.midi), Math.min(1.2, ev.dur * 0.55), ev.hand)),
     ariaLabel: s.extra.title ? `${s.extra.title}的乐谱` : undefined,
+    divisor: s.extra.divisor,
   });
   s.width = s.host.clientWidth;
   state.views.set(key, view);
+  // 重画以后把“下一个音”“选中”等标记补回来
+  if (followState && followState.key === key) followShow(true);
+  if (s.extra.afterDraw) s.extra.afterDraw(view);
 }
 
 function redrawAll(onlyIfResized) {
@@ -265,18 +309,112 @@ const trailEl = $('#trail-notes');
 let trailTimer = null;
 
 function userOn(midi, vel = 0.75, src = 'keys') {
-  if (src !== 'midi') {
-    engine.ensure();
-    noteActivity();
-  }
+  const external = src === 'midi' || src === 'mic';
+  if (src === 'mic' && (siteRh > 0 || performance.now() - siteRhOff < 350)) return;
+  if (!external) engine.ensure();
+  noteActivity();
   keyboard.press(midi, 'you');
-  if ((src !== 'midi' || settings.midiSound) && engine.ctx) {
+  if ((!external || (src === 'midi' && settings.midiSound)) && engine.ctx) {
     const key = src + midi;
     if (liveVoices.has(key)) liveVoices.get(key).stop();
     liveVoices.set(key, engine.playNote(midi, engine.now, null, vel));
   }
   addTrail(midi);
+  if (followState) followCheck(midi);
 }
+
+// ---------- 跟弹：一个音一个音地弹，弹对了才往下走 ----------
+let followState = null;
+
+function followStart({ key, piece, onStatus, onStop }) {
+  stopSession();
+  followStop();
+  const items = [];
+  piece.bars.forEach((bar, bi) => {
+    for (const ev of bar.rh) {
+      if (ev.rest) continue;
+      const lh = bar.lh.find((l) => !l.rest && Math.abs(l.start - ev.start) < 1e-6);
+      const seg = bar.chords.find((c) => ev.start >= c.start - 1e-6 && ev.start < c.start + c.dur - 1e-6);
+      items.push({ ev, lh, chord: seg ? seg.chord : null, bar: bi });
+    }
+  });
+  if (!items.length) return;
+  engine.ensure();
+  noteActivity();
+  followState = { key, items, idx: 0, onStatus, onStop };
+  if (state.marksMode !== 'chord') setMarksMode('chord');
+  followShow();
+}
+
+function followShow(quiet) {
+  const f = followState;
+  const it = f.items[f.idx];
+  const view = state.views.get(f.key);
+  if (view) {
+    view.unmarkAll('is-next');
+    view.mark(it.ev.id, 'is-next', true);
+  }
+  keyboard.setNext(it.ev.notes.map((n) => n.midi));
+  if (it.chord) setChord(it.chord, null);
+  if (!quiet && f.onStatus) f.onStatus({ idx: f.idx, total: f.items.length, item: it, done: f.justDone });
+  f.justDone = false;
+}
+
+function followCheck(midi) {
+  const f = followState;
+  const it = f.items[f.idx];
+  const ok = it.ev.notes.some((n) => n.midi === midi || (n.midi - midi) % 12 === 0);
+  if (ok) followAdvance();
+  else {
+    keyboard.pulse(midi, 'is-wrong');
+    if (f.onStatus) f.onStatus({ idx: f.idx, total: f.items.length, item: it, wrong: midi });
+  }
+}
+
+function followAdvance() {
+  const f = followState;
+  if (!f) return;
+  const it = f.items[f.idx];
+  // 弹到和弦开始的地方，网站轻轻配上左手（开着麦克风时不配，免得被当成你弹的）
+  if (it.lh && engine.ctx && !mic.active) {
+    const t = engine.now + 0.01;
+    for (const n of it.lh.notes) {
+      engine.playNote(n.midi, t, Math.min(2.4, it.lh.dur * 0.75), 0.4);
+      keyboard.flash(n.midi, 450);
+    }
+  }
+  f.idx++;
+  if (f.idx >= f.items.length) {
+    f.idx = 0;
+    f.justDone = true;
+  }
+  followShow();
+}
+
+function followBack() {
+  if (!followState) return;
+  followState.idx = Math.max(0, followState.idx - 1);
+  followShow();
+}
+
+function followStop() {
+  if (!followState) return;
+  const f = followState;
+  followState = null;
+  const view = state.views.get(f.key);
+  if (view) view.unmarkAll('is-next');
+  keyboard.setNext(null);
+  if (f.onStop) f.onStop();
+}
+
+window.addEventListener('keydown', (e) => {
+  if (!followState || e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target;
+  if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+  if (e.key === 'ArrowRight') { e.preventDefault(); followAdvance(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); followBack(); }
+  else if (e.key === 'Escape') followStop();
+});
 
 function userOff(midi, src = 'keys') {
   keyboard.release(midi, 'you');
@@ -360,6 +498,29 @@ function bindTopbar() {
   });
 
   $('#btn-midi').addEventListener('click', () => input.connectMidi());
+  const micBtn = $('#btn-mic');
+  const micStatus = $('#mic-status');
+  micBtn.hidden = !MicListener.supported();
+  const micUI = (msg) => {
+    micBtn.classList.toggle('listening', mic.active);
+    micBtn.setAttribute('aria-pressed', String(mic.active));
+    micBtn.querySelector('span').textContent = mic.active ? '麦克风在听' : '用麦克风听我弹';
+    micStatus.textContent = msg || '';
+    micStatus.hidden = !msg;
+  };
+  micBtn.addEventListener('click', async () => {
+    if (mic.active) {
+      mic.stop();
+      micUI('');
+      return;
+    }
+    try {
+      await mic.start(engine.ensure());
+      micUI('麦克风打开了：弹单音最准，跟弹时能自动往下走。戴耳机可以避免把伴奏也听进去。');
+    } catch (e) {
+      micUI('没有拿到麦克风权限。可以在地址栏左边的网站设置里允许麦克风。');
+    }
+  });
   const ms = $('#opt-midi-sound');
   ms.checked = settings.midiSound;
   ms.addEventListener('change', () => {
@@ -473,6 +634,7 @@ function route() {
   const lesson = LESSONS.find((l) => l.id === id) || LESSONS[0];
   if (state.lesson === lesson && $('#main').childElementCount) return;
   stopSession();
+  followStop();
   state.lesson = lesson;
   state.scores.clear();
   state.views.clear();
@@ -503,6 +665,12 @@ const ctx = {
   taskKey,
   markSeen,
   go,
+  followStart,
+  followStop,
+  followAdvance,
+  isFollowing: (key) => !!(followState && followState.key === key),
+  getView: (key) => state.views.get(key),
+  shared: {},
   get session() { return state.session; },
   get lesson() { return state.lesson; },
 };

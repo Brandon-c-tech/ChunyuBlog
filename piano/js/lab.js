@@ -54,29 +54,9 @@ function barTokens(notes) {
   return notes.map(([i, d]) => noteToken(i, d)).join(' ');
 }
 
-// 第 1 步：随机五声旋律（C 和弦上 4 小节）
-export function randomPentatonic(id) {
-  const bars = [];
-  let last = pick([0, 2, 4]);
-  for (let b = 0; b < 3; b++) {
-    const r = pick([...RHYTHMS[3], ...RHYTHMS[4], ...RHYTHMS[5]]);
-    const pitches = walk(last, r.length + 1).slice(1);
-    bars.push(r.map((d, k) => [pitches[k], d]));
-    last = pitches[pitches.length - 1];
-  }
-  const p = walk(last, 2)[1];
-  bars.push([[p, 2], [nearest([0, 2, 4, 7], p), 2]]);
-  return {
-    id,
-    rh: bars.map(barTokens).join(' | '),
-    chords: 'C | C | C | C',
-    lhPattern: 'whole',
-    bpm: 76,
-  };
-}
-
 // ---------- 动机 ----------
 export const MOTIFS = [
+  { name: '1 1 5 5', notes: [[0, 1], [0, 1], [4, 1], [4, 1]] },
   { name: '3 5 6', notes: [[2, 1], [4, 1], [5, 2]] },
   { name: '5 3 2', notes: [[4, 1], [2, 1], [1, 2]] },
   { name: '1 2 3 5', notes: [[0, 0.5], [1, 0.5], [2, 1], [4, 2]] },
@@ -186,8 +166,10 @@ export function motifPiece(motif, mode, id) {
   };
 }
 
-// ---------- 第 5 步：问答游戏（问句在 C → G 上，答句在 F → C 上） ----------
+// ---------- 问答游戏：网站弹两小节问句，你答两小节 ----------
+// 第 1 题就是《小星星》本身：前两小节问，后两小节答。其余问句在 C → G 上，答句在 F → C 上。
 export const QA_BANK = [
+  { q: '1 1 5 5 | 6 6 5 -', a: '4 4 3 3 | 2 2 1 -', chords: 'C | F C | F C | G C' },
   { q: '5 3 5 6 | 5 - - 0', a: '6 5 3 2 | 1 - - 0' },
   { q: '3 5 6 5 | 2 - - 0', a: "1' 6 5 3 | 1 - - 0" },
   { q: '3_ 3_ 5 6 5 | 2 - - 0', a: '6_ 6_ 5 3 2 | 1 - - 0' },
@@ -203,7 +185,7 @@ export function qaPiece(i, withAnswer, id) {
   return {
     id,
     rh: `{问} ${q1} | ${q2} | {你来答} ${a1} | ${a2}`,
-    chords: 'C | G | F | C',
+    chords: item.chords || 'C | G | F | C',
     lhPattern: 'whole',
     bpm: 76,
   };

@@ -144,3 +144,134 @@ export class Recorder {
     return !!this.rec;
   }
 }
+
+// ---------- 用麦克风听真钢琴（试验功能） ----------
+// YIN 音高检测：只在右手音域（约 B3 到 C7）里找基频，左手伴奏的低音会被忽略
+export function detectPitch(buf, sr, fMin = 245, fMax = 2100, threshold = 0.15) {
+  const tMax = Math.min(Math.floor(sr / fMin) + 2, buf.length >> 1);
+  const tMin = Math.max(2, Math.floor(sr / fMax));
+  const w = buf.length - tMax;
+  const d = new Float32Array(tMax + 1);
+  for (let tau = 1; tau <= tMax; tau++) {
+    let s = 0;
+    for (let i = 0; i < w; i++) {
+      const x = buf[i] - buf[i + tau];
+      s += x * x;
+    }
+    d[tau] = s;
+  }
+  d[0] = 1;
+  let run = 0;
+  for (let tau = 1; tau <= tMax; tau++) {
+    run += d[tau];
+    d[tau] = run ? (d[tau] * tau) / run : 1;
+  }
+  for (let t = tMin; t < tMax; t++) {
+    if (d[t] < threshold) {
+      while (t + 1 < tMax && d[t + 1] < d[t]) t++;
+      const a = d[t - 1];
+      const b = d[t];
+      const c = d[t + 1];
+      const den = a - 2 * b + c;
+      const shift = den ? (a - c) / (2 * den) : 0;
+      return { f0: sr / (t + shift), clarity: 1 - b };
+    }
+  }
+  return null;
+}
+
+export class MicListener {
+  constructor({ onNoteOn, onNoteOff }) {
+    this.onNoteOn = onNoteOn;
+    this.onNoteOff = onNoteOff;
+    this.active = false;
+  }
+
+  static supported() {
+    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  }
+
+  async start(ctx) {
+    this.stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+    });
+    this.ctx = ctx;
+    this.src = ctx.createMediaStreamSource(this.stream);
+    // 先滤掉 230Hz 以下的声音：左手伴奏的低音不会干扰右手旋律的检测
+    const hp1 = ctx.createBiquadFilter();
+    const hp2 = ctx.createBiquadFilter();
+    hp1.type = hp2.type = 'highpass';
+    hp1.frequency.value = hp2.frequency.value = 230;
+    this.an = ctx.createAnalyser();
+    this.an.fftSize = 2048;
+    this.src.connect(hp1);
+    hp1.connect(hp2);
+    hp2.connect(this.an);
+    this.buf = new Float32Array(this.an.fftSize);
+    this.floor = 0.004;
+    this.prev = 0;
+    this.cur = null;
+    this.cand = null;
+    this.count = 0;
+    this.quiet = 0;
+    this.attack = false;
+    this.active = true;
+    this.timer = setInterval(() => this.tick(), 25);
+  }
+
+  stop() {
+    clearInterval(this.timer);
+    if (this.cur != null) this.onNoteOff(this.cur);
+    this.cur = null;
+    if (this.src) this.src.disconnect();
+    if (this.stream) this.stream.getTracks().forEach((t) => t.stop());
+    this.active = false;
+  }
+
+  tick() {
+    const buf = this.buf;
+    this.an.getFloatTimeDomainData(buf);
+    let s = 0;
+    for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
+    const rms = Math.sqrt(s / buf.length);
+    // 慢慢跟踪房间底噪
+    if (rms < this.floor * 1.6) this.floor = this.floor * 0.97 + rms * 0.03;
+    const gate = Math.max(0.006, this.floor * 4);
+    const onset = rms > gate && rms > this.prev * 1.35 + 0.002;
+    this.prev = rms;
+    if (rms < gate) {
+      if (++this.quiet > 5 && this.cur != null) {
+        this.onNoteOff(this.cur);
+        this.cur = null;
+      }
+      this.cand = null;
+      return;
+    }
+    this.quiet = 0;
+    // 新的一下按键：清掉之前的判断，跳过还混着上一个音尾巴的那一帧
+    if (onset) {
+      this.attack = true;
+      this.since = 0;
+      this.cand = null;
+      this.count = 0;
+      return;
+    }
+    this.since = (this.since || 0) + 1;
+    const p = detectPitch(buf, this.ctx.sampleRate);
+    if (!p) return;
+    const midi = Math.round(69 + 12 * Math.log2(p.f0 / 440));
+    // 同一个音连续出现几帧才算数，避开按键瞬间的杂音
+    if (midi === this.cand) this.count++;
+    else {
+      this.cand = midi;
+      this.count = 1;
+    }
+    const need = this.attack ? 2 : 3;
+    if (this.count >= need && (midi !== this.cur || this.attack)) {
+      if (this.cur != null) this.onNoteOff(this.cur);
+      this.cur = midi;
+      this.attack = false;
+      this.onNoteOn(midi);
+    }
+  }
+}

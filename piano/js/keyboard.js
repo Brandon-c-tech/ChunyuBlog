@@ -67,7 +67,24 @@ export class Keyboard {
     this.renderLabels();
     this.renderMarks();
     this.renderHints();
+    this.setNext(this.next ? [...this.next] : null);
     for (const m of this.keys.keys()) this.paint(m);
+  }
+
+  // “下一个要弹的音”：琴键上画一个提示圈
+  setNext(midis) {
+    this.next = new Set(midis || []);
+    for (const [m, k] of this.keys) k.el.classList.toggle('is-next', this.next.has(m));
+  }
+
+  // 临时闪一下某种样式（比如弹错时）
+  pulse(midi, cls, ms = 450) {
+    const k = this.keys.get(midi);
+    if (!k) return;
+    k.el.classList.remove(cls);
+    void k.el.offsetWidth;
+    k.el.classList.add(cls);
+    setTimeout(() => k.el.classList.remove(cls), ms);
   }
 
   setLabelMode(mode) {

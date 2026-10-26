@@ -148,12 +148,6 @@ export function smoothVoicing(chord, prev) {
   return best;
 }
 
-// 和弦级数 → 和弦（C 大调顺阶）
-const DEGREE_CHORDS = ['C', 'Dm', 'Em', 'F', 'G', 'Am', 'G'];
-export function chordForDegree(scaleIndex) {
-  return DEGREE_CHORDS[((scaleIndex % 7) + 7) % 7];
-}
-
 // 音在当前和弦里的角色：'ct' 和弦音、'st' 音阶音、'out' 调外音
 export function noteRole(midi, chord) {
   const pc = ((midi % 12) + 12) % 12;
